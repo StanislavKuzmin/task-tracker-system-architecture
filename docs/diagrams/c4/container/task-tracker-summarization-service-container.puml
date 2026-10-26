@@ -1,0 +1,28 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Orders System - Containers
+
+System_Ext(taskTrackerScheduler, "Task Tracker Scheduler", "Подготовка данных для формирования отчёта по задачам пользователей и данных для отправки отчёта пользователям")
+
+System_Boundary(s1, "Task Tracker Summarization Service") {
+  Container(api, "Core API", "Spring Boot", "бизнес-логика")
+
+  ContainerDb(db, "PostgreSQL", "DB", "Данные по отчётам пользователя, готовые отчёты сформированные LLM")
+
+  ContainerQueue(kafkaRPC, "Kafka RPC", "Queue", "События отчётов пользователей")
+}
+
+System_Ext(llm, "LLM API", "Внешний LLM")
+
+
+
+Rel(api, db, "CRUD", "JDBC")
+Rel(taskTrackerScheduler, kafkaRPC, "Публикует данные для формирования отчёта", "Kafka protocol")
+Rel(kafkaRPC, taskTrackerScheduler, "Публикует готовый отчёт пользователя", "Kafka protocol")
+Rel(kafkaRPC, api, "Данные для генерации отчёта LLM", "Kafka protocol")
+Rel(api, kafkaRPC, "Отчёт по задачам пользователя", "Kafka protocol")
+Rel(api, llm, "Создание отчёта", "HTTPS")
+Rel(llm, api, "Отчёт по задачам пользователя", "HTTPS")
+
+@enduml

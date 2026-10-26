@@ -1,0 +1,22 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Task Tracker - Context
+
+Person(user, "User")
+System(taskTrackerBackend, "Task Tracker Backend", "Регистрация и авторизация пользователей, работа с задачами пользователей")
+System(taskTrackerScheduler, "Task Tracker Scheduler", "Подготовка данных для формирования отчёта по задачам пользователей и данных для отправки отчёта пользователям")
+System(emailService, "Task Tracker Email Sender", "Отправка email пользователям")
+System(taskTrackerSummarizationService, "Task Tracker Summarization Service", "Создание отчета по задачам пользователей с помощью LLM")
+
+System_Ext(llm, "LLM API", "Внешний LLM")
+
+Rel(user, taskTrackerBackend, "Создание учетной записи, авторизация, управление задачами", "HTTPS")
+Rel(taskTrackerScheduler, taskTrackerSummarizationService, "Подготовка данных для отчета по задачам", "Kafka RPS")
+Rel(taskTrackerSummarizationService, taskTrackerScheduler, "Генерация отчёта с помощью LLM", "Kafka RPS")
+Rel(taskTrackerScheduler, emailService, "Отправка пользователям писем с отчётом по задачам", "Kafka")
+Rel(taskTrackerBackend, emailService, "Отправка приветственного письма при успешной регистрации", "Kafka")
+Rel(taskTrackerScheduler, taskTrackerBackend, "Поиск выполненных/невыполненных задач пользователей за период", "HTTP")
+Rel(taskTrackerSummarizationService, llm, "Формирование отчёта по задача пользователей", "HTTPS")
+
+@enduml

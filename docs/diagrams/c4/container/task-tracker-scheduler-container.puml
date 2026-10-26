@@ -1,0 +1,28 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Task Tracker Scheduler - Containers
+
+System_Ext(taskTrackerBackend, "Task Tracker Backend", "Регистрация и авторизация пользователей, работа с задачами пользователей")
+
+System_Boundary(s1, "Task Tracker Scheduler") {
+  Container(api, "Core API", "Spring Boot", "REST API + бизнес-логика")
+  ContainerDb(db, "PostgreSQL", "DB", "Отчёты пользователей по выполненным/невыполненным задачам")
+  ContainerQueue(kafka, "Kafka", "Queue", "Данные для подготовки письма с отчётом")
+  ContainerQueue(kafkaRPC, "Kafka RPC", "Queue", "Отчёт пользователя")
+}
+
+System_Ext(emailService, "Task Tracker Email Sender", "Отправка email")
+System_Ext(taskTrackerSummarizationService, "Task Tracker Summarization Service", "Создание отчета по задачам с помощью LLM")
+
+Rel(api, taskTrackerBackend, "Запрос выполненных/невыполненных задач пользователей за период", "HTTPS")
+Rel(taskTrackerBackend, api, "Ответ выполненных/невыполненных задач пользователей за период", "HTTPS")
+Rel(api, db, "Сохранение отчёта", "JDBC")
+Rel(api, kafka, "Публикует данные для отправки отчёта пользователю (email, отчёт)", "Kafka protocol")
+Rel(api, kafkaRPC, "Публикует данные для запроса отчёта", "kafka rpc")
+Rel(kafkaRPC, api, "Получение отчёта от summarization service", "kafka rpc")
+Rel(kafka, emailService, "Отправка отчёта письмом на почту", "Kafka")
+Rel(kafkaRPC, taskTrackerSummarizationService, "Данные для подготовки отчёта в LLM", "Kafka RPC")
+Rel(taskTrackerSummarizationService, kafkaRPC, "Сгенерированный LLM отчёт по задачам", "Kafka RPC")
+
+@enduml

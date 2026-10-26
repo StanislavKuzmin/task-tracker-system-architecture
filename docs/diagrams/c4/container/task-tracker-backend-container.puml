@@ -1,0 +1,22 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Task Tracker Backend - Containers
+
+Person(user, "User", "Пользователь")
+
+System_Boundary(s1, "Task Tracker Backend") {
+  Container(api, "Core API", "Spring Boot", "REST API + бизнес-логика")
+
+  ContainerDb(db, "PostgreSQL", "DB", "Данные пользователей, задачи пользователей")
+  ContainerQueue(kafka, "Kafka", "Queue", "Приветственные письма при успешной регистрации")
+}
+
+System_Ext(emailService, "Task Tracker Email Sender", "Отправка email")
+
+Rel(user, api, "Работает с UI", "HTTPS")
+Rel(api, db, "CRUD", "JDBC")
+Rel(api, kafka, "Публикует письма для отправки", "Kafka protocol")
+Rel(kafka, emailService, "Отправка письма", "Kafka")
+
+@enduml

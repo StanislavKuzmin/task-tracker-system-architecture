@@ -1,0 +1,24 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Orders System - Containers
+
+System_Ext(taskTrackerScheduler, "Task Tracker Scheduler", "Подготовка данных для формирования отчёта по задачам пользователей и данных для отправки отчёта пользователям")
+System_Ext(taskTrackerBackend, "Task Tracker Backend", "Регистрация и авторизация пользователей, работа с задачами пользователей")
+
+System_Boundary(s1, "Task Tracker Email Sender") {
+  Container(api, "Core API", "Spring Boot", "бизнес-логика по отправке письма на почту пользователей")
+
+  ContainerDb(db, "PostgreSQL", "DB", "Письма пользователям")
+  ContainerQueue(kafka, "Kafka", "Queue", "Письма пользователям")
+}
+
+System_Ext(externalMailService, "External Mail Srvice", "Внешний почтовый сервер")
+
+Rel(api, db, "Письма пользователям", "JDBC")
+Rel(kafka, api, "Данные для отправки письма", "Kafka")
+Rel(taskTrackerScheduler, kafka, "Событие с письмом отчёта пользователя", "Kafka")
+Rel(taskTrackerBackend, kafka, "Событие с приветственным письмом пользователя", "Kafka")
+Rel(api, externalMailService, "Отправка письма на почту пользователей", "HTTPS")
+
+@enduml
