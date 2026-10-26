@@ -1,0 +1,74 @@
+
+name: Render C4 diagrams
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/diagrams/c4/**/*.puml'
+      - 'docs/diagrams/c4/*.puml'
+      - '.github/workflows/render-diagrams.yml'
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find and render diagrams
+        run: |
+          set -euo pipefail
+
+          SOURCE_DIR="docs/diagrams/c4"
+          OUTPUT_DIR="$PWD/docs/diagrams/rendered"
+
+          mkdir -p "$OUTPUT_DIR"
+
+          mapfile -d '' FILES < <(
+            find "$SOURCE_DIR" -type f -name '*.puml' -print0
+          )
+
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No .puml files found in $SOURCE_DIR"
+            exit 1
+          fi
+
+          echo "Found ${#FILES[@]} PlantUML files:"
+          printf '%s\n' "${FILES[@]}"          
+          
+          for file in "${FILES[@]}"; do
+            echo "Rendering $file"
+
+            docker run --rm \
+              --user "$(id -u):$(id -g)" \
+              -e HOME=/tmp \
+              -v "$PWD:/work" \
+              -w /work \
+              plantuml/plantuml:latest \
+              -tsvg \
+              -o /work/docs/diagrams/rendered \
+              "/work/$file"
+          done
+
+
+      - name: Commit rendered SVG files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add docs/diagrams/rendered/
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update rendered C4 diagrams [skip ci]"
+            git push
+          else
+            echo "No changes in rendered diagrams."
+          fi
